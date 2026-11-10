@@ -1,0 +1,24 @@
+# GitHub's hosted MCP server, restricted to read-only tools. Applied by `just github-up`,
+# which first creates the github-mcp-credentials Secret from $GITHUB_TOKEN.
+apiVersion: api.kagent.dev/v1alpha3
+kind: RemoteMCPServer
+metadata:
+  name: github-mcp
+  namespace: kagent
+spec:
+  description: GitHub's hosted MCP server, read-only (repos, issues, pull requests).
+  # The /readonly path enables only read tools; X-MCP-Readonly repeats that as a header.
+  url: https://api.githubcopilot.com/mcp/readonly
+  protocol: STREAMABLE_HTTP
+  timeout: 30s
+  headersFrom:
+    # Secret-backed headers are injected by the egress gateway, so the token never enters the sandbox.
+    - name: Authorization
+      valueFrom:
+        type: Secret
+        name: github-mcp-credentials
+        key: authorization
+    - name: X-MCP-Readonly
+      value: "true"
+    - name: X-MCP-Toolsets
+      value: repos,issues,pull_requests

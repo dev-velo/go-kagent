@@ -1,0 +1,40 @@
+apiVersion: api.kagent.dev/v1alpha3
+kind: AgentTemplate
+metadata:
+  name: github-template
+  namespace: kagent
+spec:
+  description: Read-only GitHub helper. Reads repository files, issues and pull requests.
+  modelConfig:
+    name: default-model-config
+  systemPrompt: |-
+    You are a read-only GitHub helper. Use your tools to answer questions about repositories,
+    issues and pull requests. Unless the caller names a repository, use dev-velo/go-kagent.
+    Never ask the caller questions or wait for input; make reasonable assumptions and answer.
+    You cannot change anything on GitHub; say so if asked to. Reply concisely with what you found.
+  tools:
+    - mcp:
+        server:
+          kind: RemoteMCPServer
+          name: github-mcp
+        # kagent does not check these against the server's catalog; `just github-up` warns about mismatches.
+        tools:
+          - get_file_contents
+          - search_code
+          - list_issues
+          - issue_read
+          - search_issues
+          - list_pull_requests
+          - pull_request_read
+---
+apiVersion: api.kagent.dev/v1alpha3
+kind: Agent
+metadata:
+  name: github-agent
+  namespace: kagent
+spec:
+  template:
+    ref:
+      name: github-template
+  harnessRef:
+    name: my-first-harness
