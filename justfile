@@ -18,7 +18,7 @@ up: cluster-up cli-install install wait-ready harness-apply status delegation-ap
     @echo "ready: UI at http://localhost:{{ui_port}} | just ask \"What is 2+2?\" | just delegation-ask"
 
 # Stop the cluster but keep all its state (images, Helm releases, Postgres); `just up` resumes in about a minute
-down: ui-stop
+down: ngrok-stop ui-stop
     minikube stop -p {{profile}}
 
 # Create the local minikube cluster (k8s 1.37+ is required by Agent Substrate)
@@ -29,7 +29,7 @@ cluster-up cpus="6" memory="6g":
     kubectl api-resources --api-group=certificates.k8s.io
 
 # Delete the cluster and the repo-local kubeconfig; the next `just up` is a full install
-destroy: ui-stop
+destroy: ngrok-stop ui-stop
     minikube delete -p {{profile}}
     rm -f .kube/config
 
@@ -134,6 +134,36 @@ ui-stop:
       kill "$(cat .ui.pid)" 2>/dev/null || true
       rm -f .ui.pid
       echo "stopped UI port-forward"
+    fi
+
+# Run ngrok in the background (Google sign-in, @logicgate.com only), without tying up a terminal.
+# Refuses to start if another ngrok is already running. Optional NGROK_URL. Stop with `just ngrok-stop` (or `just down`).
+ngrok-bg: guard ui-bg
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ -f .ngrok.pid ]] && kill -0 "$(cat .ngrok.pid)" 2>/dev/null; then
+      echo "ngrok already running (pid $(cat .ngrok.pid))"
+    elif pgrep -x ngrok >/dev/null; then
+      echo "another ngrok is already running (pid $(pgrep -x ngrok | head -1)); stop it first" >&2
+      exit 1
+    else
+      nohup ngrok http {{ui_port}} ${NGROK_URL:+--url "$NGROK_URL"} --traffic-policy-file deploy/ngrok/policy.yml --log=stdout >.ngrok.log 2>&1 &
+      echo $! > .ngrok.pid
+    fi
+    for _ in $(seq 20); do
+      url="$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url // empty' 2>/dev/null || true)"
+      [[ -n "$url" ]] && { echo "ngrok: $url"; exit 0; }
+      sleep 1
+    done
+    echo "ngrok started but no tunnel is reported yet; see .ngrok.log" >&2
+
+# Stop the background ngrok that `just ngrok-bg` started (never touches an ngrok you started yourself)
+ngrok-stop:
+    #!/usr/bin/env bash
+    if [[ -f .ngrok.pid ]]; then
+      kill "$(cat .ngrok.pid)" 2>/dev/null || true
+      rm -f .ngrok.pid
+      echo "stopped background ngrok"
     fi
 
 # Expose the kagent UI through ngrok with Google sign-in limited to @logicgate.com (deploy/ngrok/policy.yml).

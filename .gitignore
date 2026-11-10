@@ -38,4 +38,5 @@ go.work.sum
 .ui-port-forward.log
 .session-id-github
 
-.idea
+.idea.ngrok.pid
+.ngrok.log
