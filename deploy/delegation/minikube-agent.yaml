@@ -1,14 +1,15 @@
 apiVersion: api.kagent.dev/v1alpha3
 kind: AgentTemplate
 metadata:
-  name: k8s-template
+  name: minikube-template
   namespace: kagent
 spec:
-  description: Read-only Kubernetes helper. Lists cluster resources and reads pod logs for the local cluster.
+  description: Read-only Kubernetes helper connected to the local minikube cluster (profile kagent-lab) that hosts kagent and Agent Substrate. Lists cluster resources and reads pod logs.
   modelConfig:
     name: default-model-config
   systemPrompt: |-
-    You are a read-only Kubernetes helper. Use your tools to answer cluster questions.
+    You are a read-only Kubernetes helper connected to the local minikube cluster that hosts kagent
+    and Agent Substrate. Use your tools to answer questions about that cluster.
     Never ask the caller questions or wait for input; make reasonable assumptions and answer.
     Reply concisely with just the facts you found.
   tools:
@@ -23,11 +24,11 @@ spec:
 apiVersion: api.kagent.dev/v1alpha3
 kind: Agent
 metadata:
-  name: k8s-agent
+  name: minikube-agent
   namespace: kagent
 spec:
   template:
     ref:
-      name: k8s-template
+      name: minikube-template
   harnessRef:
     name: my-first-harness
