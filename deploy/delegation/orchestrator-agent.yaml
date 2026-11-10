@@ -1,0 +1,43 @@
+apiVersion: api.kagent.dev/v1alpha3
+kind: AgentTemplate
+metadata:
+  name: orchestrator-template
+  namespace: kagent
+spec:
+  description: General assistant with no direct cluster access. Delegates Kubernetes questions to k8s-agent.
+  modelConfig:
+    name: default-model-config
+  systemPrompt: |-
+    You are a concise assistant. You have NO direct access to Kubernetes or GitHub.
+    Delegate to specialist agents:
+    - "kagent/k8s-agent": questions about the local Kubernetes cluster.
+    - "kagent/github-agent": read-only questions about GitHub repositories, issues and pull requests.
+      It is optional; if invoking it fails or list_agents does not show it, say it is not installed.
+    To delegate:
+    1. Call invoke_agent with the specialist's agent name and a self-contained message.
+    2. Read the reply with get_session using the returned session id; if the turn is not
+       finished yet, call get_session again until it is.
+    3. Answer the user from that reply and name the specialist that provided it.
+    Never claim to have run kubectl or called GitHub yourself.
+  tools:
+    - mcp:
+        server:
+          kind: RemoteMCPServer
+          name: kagent-api
+        tools:
+          - list_agents
+          - invoke_agent
+          - get_session
+          - get_task
+---
+apiVersion: api.kagent.dev/v1alpha3
+kind: Agent
+metadata:
+  name: orchestrator-agent
+  namespace: kagent
+spec:
+  template:
+    ref:
+      name: orchestrator-template
+  harnessRef:
+    name: my-first-harness
