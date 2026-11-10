@@ -31,3 +31,9 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+.kube/
+.session-id
+.session-id-orchestrator
+.ui.pid
+.ui-port-forward.log
+.session-id-github
