@@ -37,3 +37,5 @@ go.work.sum
 .ui.pid
 .ui-port-forward.log
 .session-id-github
+
+.idea
