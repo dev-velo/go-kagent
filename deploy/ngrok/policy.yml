@@ -1,0 +1,13 @@
+# ngrok traffic policy for the kagent UI: Google sign-in, then allow only @logicgate.com accounts.
+# Applied by `just ngrok` via --traffic-policy-file.
+on_http_request:
+  - name: google-oauth
+    actions:
+      - type: oauth
+        config:
+          provider: google
+  - name: logicgate-only
+    expressions:
+      - "!actions.ngrok.oauth.identity.email.endsWith('@logicgate.com')"
+    actions:
+      - type: deny
